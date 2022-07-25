@@ -21,7 +21,7 @@ korekong -d "path/to/directory"
 
 The MP4 files will be created beside the location of MKV files with only the extension name that is different. 
 
-If there is already an MP4 files beside the MKV file that has the same name, then a conversion will not be started for that MKV files to avoid overwriting the existing MP4 File.
+If there is already an MP4 file beside the MKV file that has the same name, then a conversion will not be started for that MKV file to avoid overwriting the existing MP4 File.
 
 # License
 
