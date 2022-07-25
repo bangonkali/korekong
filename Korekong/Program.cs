@@ -9,6 +9,13 @@ static class Program
 {
     static async Task<int> Main(string[] args)
     {
+        var test = new Option<bool>(
+            name: "--test",
+            description: "Skip conversion but read all videos to see sanity of input.");
+        test.SetDefaultValue(false);
+        test.IsRequired = false;
+        test.AddAlias("-t");
+
         var skipConfirmation = new Option<bool>(
             name: "--yes",
             description: "Skip asking for confirmation to start conversion.");
@@ -26,12 +33,13 @@ static class Program
 
         rootCommand.AddOption(skipConfirmation);
         rootCommand.AddOption(directoryOption);
+        rootCommand.AddOption(test);
 
-        rootCommand.SetHandler(async (skipConfirm, inputDir) =>
+        rootCommand.SetHandler(async (testOnly, skipConfirm, inputDir) =>
             {
                 Console.WriteLine("Starting conversion");
 
-                var results = await Convert(skipConfirm, inputDir!);
+                var results = await Convert(testOnly, skipConfirm, inputDir!);
                 foreach (var result in results.ConversionResults)
                 {
                     Console.WriteLine($"Converted {result.Arguments} in {result.Duration}");
@@ -39,6 +47,7 @@ static class Program
 
                 Console.WriteLine(results.Message);
             },
+            test,
             skipConfirmation,
             directoryOption);
 
@@ -53,7 +62,7 @@ static class Program
         }
     }
 
-    static async Task<KonvertResult> Convert(bool skipConfirm, DirectoryInfo inputDir)
+    static async Task<KonvertResult> Convert(bool testOnly, bool skipConfirm, DirectoryInfo inputDir)
     {
         // Find all target files, files ending with .mkv
         var results = new List<IConversionResult>();
@@ -67,9 +76,30 @@ static class Program
 
         // Preview all the files that were found.
         Console.WriteLine($"{files.Count()} file/s found:");
+        var aggregateCodecs = new HashSet<string>();
         foreach (var file in files)
         {
-            Console.WriteLine($"{file}");
+            try
+            {
+                var mediaInfo = await FFmpeg.GetMediaInfo(file);
+                var codecs = mediaInfo.GetSubtitleCodecs();
+                foreach (var codec in codecs)
+                {
+                    aggregateCodecs.Add(codec);
+                }
+
+                Console.WriteLine($"{file} {string.Join(", ", codecs)}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        Console.WriteLine($"{aggregateCodecs.Count()} subtitle codec/s found:");
+        foreach (var codec in aggregateCodecs)
+        {
+            Console.WriteLine($"{codec}");
         }
 
         // Ask the user if they want to continue or not.
@@ -89,8 +119,21 @@ static class Program
         {
             var mediaInfo = await FFmpeg.GetMediaInfo(file);
             var conversion = await mediaInfo.ConvertTo_H264_AAC();
-            var conversionResult = await conversion.Start();
-            results.Add(conversionResult);
+
+            Console.WriteLine($"ffmpeg {conversion.Build()}");
+
+            if (!testOnly)
+            {
+                try
+                {
+                    var conversionResult = await conversion.Start();
+                    results.Add(conversionResult);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
         }
 
         return new KonvertResult
