@@ -23,6 +23,11 @@ The MP4 files will be created beside the location of MKV files with only the ext
 
 If there is already an MP4 file beside the MKV file that has the same name, then a conversion will not be started for that MKV file to avoid overwriting the existing MP4 File.
 
+## Supported Subtitle Files
+
+1. `hdmv_pgs_subtitle`
+2. `subrip`
+
 # License
 
 MIT License
