@@ -25,7 +25,7 @@ public static class MediaInfoExtension
         foreach (var subtitle in subtitles)
         {
             var sub = subtitle.SubtitleStream;
-            sub.SetCodec(SubtitleCodec.mov_text);
+            sub.SetCodec(SubtitleCodec.copy);
             sub.SetLanguage(subtitle.Language);
             conversion.AddStream(sub);
         }
